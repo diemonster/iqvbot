@@ -70,11 +70,12 @@ func main() {
 
 		// todo: create behaviors
 		behaviors := []slackbot.Behavior{
+			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
 			slackbot.NewAliasBehavior(store),
 		}
 
-		// start the real-time-messaging
+		// start the real-time-messaging api
 		rtm := client.NewRTM()
 		go rtm.ManageConnection()
 		defer rtm.Disconnect()
@@ -111,7 +112,7 @@ func main() {
 				w := bytes.NewBuffer(nil)
 
 				app := cli.NewApp()
-				app.Name = "slackbot"
+				app.Name = "iqvbot"
 				app.Usage = "making email obsolete one step at a time"
 				app.UsageText = "command [flags...] arguments..."
 				app.Version = Version
