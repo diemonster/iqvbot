@@ -68,11 +68,14 @@ func main() {
 
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
-		// todo: create behaviors
+		events := slackbot.InMemoryEventStore{}
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
 			slackbot.NewAliasBehavior(store),
+			slackbot.NewRepeatBehavior(events, func(m slack.MessageEvent) bool {
+				return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
+			}),
 		}
 
 		// start the real-time-messaging api
@@ -128,9 +131,8 @@ func main() {
 					slackbot.NewAliasCommand(store, w, store.InvalidateBefore(db.AliasesKey)),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
+					slackbot.NewRepeatCommand(events, data.Channel, rtm.IncomingEvents),
 				}
-
-				// idea for alias behavior: we use a command option to do .Before(), we invalidate the alisa store/cache?
 
 				if err := app.Run(args); err != nil {
 					w.WriteString(err.Error())
