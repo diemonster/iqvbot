@@ -10,6 +10,7 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/nlopes/slack"
+	"github.com/quintilesims/iqvbot/behaviors"
 	"github.com/quintilesims/iqvbot/db"
 	"github.com/quintilesims/slackbot/utils"
 	"github.com/zpatrick/slackbot"
@@ -53,10 +54,12 @@ func main() {
 
 	iqvbot.Action = func(c *cli.Context) error {
 		// todo: create dynamodb data store
-		store := db.NewStoreAdapter(db.NewMemoryStore())
+		store := db.NewMemoryStore()
 		if err := db.Init(store); err != nil {
 			return err
 		}
+
+		aliasStore := db.NewKeyValueStoreAdapter(store, db.AliasesKey)
 
 		// todo: start cleanup runner
 		// todo: start reminders runner
@@ -77,8 +80,8 @@ func main() {
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
-			slackbot.NewAliasBehavior(store),
-			// todo: karma behavior
+			slackbot.NewAliasBehavior(aliasStore),
+			behaviors.NewKarmaBehavior(store),
 		}
 
 		// start the real-time-messaging api
@@ -136,7 +139,10 @@ func main() {
 				// todo: KarmaCommand
 				// todo: TriviaCommand (stdlib)
 				app.Commands = []cli.Command{
-					slackbot.NewAliasCommand(store, w, store.InvalidateBefore(db.AliasesKey)),
+					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
+						aliasStore.Invalidate()
+						return nil
+					})),
 					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),

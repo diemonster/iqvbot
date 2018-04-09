@@ -1,5 +1,7 @@
 package db
 
+import "github.com/quintilesims/iqvbot/models"
+
 // Init will initialize the table entries for the specified store
 func Init(store Store) error {
 	initFunc := func(key string, v interface{}) error {
@@ -15,6 +17,10 @@ func Init(store Store) error {
 	}
 
 	if err := initFunc(AliasesKey, map[string]string{}); err != nil {
+		return err
+	}
+
+	if err := initFunc(KarmasKey, models.Karmas{}); err != nil {
 		return err
 	}
 
