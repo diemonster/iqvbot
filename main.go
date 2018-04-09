@@ -44,6 +44,11 @@ func main() {
 			Usage:  "authentication token for the slack bot",
 			EnvVar: "IB_SLACK_BOT_TOKEN",
 		},
+		cli.StringFlag{
+			Name:   "tenor-key",
+			Usage:  "authentication key for the Tenor API",
+			EnvVar: "SB_TENOR_KEY",
+		},
 	}
 
 	iqvbot.Action = func(c *cli.Context) error {
@@ -53,7 +58,8 @@ func main() {
 			return err
 		}
 
-		// todo: start runners
+		// todo: start cleanup runner
+		// todo: start reminders runner
 
 		// create the slack client
 		appToken := c.String("slack-app-token")
@@ -68,14 +74,11 @@ func main() {
 
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
-		events := slackbot.InMemoryEventStore{}
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
 			slackbot.NewAliasBehavior(store),
-			slackbot.NewRepeatBehavior(events, func(m slack.MessageEvent) bool {
-				return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
-			}),
+			// todo: karma behavior
 		}
 
 		// start the real-time-messaging api
@@ -127,11 +130,20 @@ func main() {
 					text := fmt.Sprintf("Command '%s' does not exist", command)
 					w.WriteString(text)
 				}
+				// todo: CandidateCommand
+				// todo: GlossaryCommand (stlib - rename)
+				// todo: InterviewCommand
+				// todo: KarmaCommand
+				// todo: TriviaCommand (stdlib)
 				app.Commands = []cli.Command{
 					slackbot.NewAliasCommand(store, w, store.InvalidateBefore(db.AliasesKey)),
-					slackbot.NewEchoCommand(w),
+					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
-					slackbot.NewRepeatCommand(events, data.Channel, rtm.IncomingEvents),
+					slackbot.NewEchoCommand(w),
+					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, c.String("tenor-key"), w),
+					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
+						return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
+					}),
 				}
 
 				if err := app.Run(args); err != nil {
