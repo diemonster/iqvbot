@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"github.com/nlopes/slack"
-	"github.com/quintilesims/slackbot/db"
-	"github.com/quintilesims/slackbot/models"
+	"github.com/quintilesims/iqvbot/db"
+	"github.com/quintilesims/iqvbot/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/zpatrick/slackbot"
 )
 
 func TestKarmaBehavior(t *testing.T) {
 	store := db.NewMemoryStore()
-	karmas := models.Karmas{
-		"dogs": models.Karma{Upvotes: 10, Downvotes: 0},
-		"cats": models.Karma{Upvotes: 0, Downvotes: 10},
+	karma := models.Karma{
+		"dogs": models.KarmaEntry{Upvotes: 10, Downvotes: 0},
+		"cats": models.KarmaEntry{Upvotes: 0, Downvotes: 10},
 	}
 
-	if err := store.Write(db.KarmasKey, karmas); err != nil {
+	if err := store.Write(db.KarmaKey, karma); err != nil {
 		t.Fatal(err)
 	}
 
@@ -42,15 +42,15 @@ func TestKarmaBehavior(t *testing.T) {
 		}
 	}
 
-	result := models.Karmas{}
-	if err := store.Read(db.KarmasKey, &result); err != nil {
+	result := models.Karma{}
+	if err := store.Read(db.KarmaKey, &result); err != nil {
 		t.Fatal(err)
 	}
 
-	expected := models.Karmas{
-		"dogs": models.Karma{Upvotes: 12, Downvotes: 0},
-		"cats": models.Karma{Upvotes: 0, Downvotes: 12},
-		"new":  models.Karma{Upvotes: 3, Downvotes: 3},
+	expected := models.Karma{
+		"dogs": {Upvotes: 12, Downvotes: 0},
+		"cats": {Upvotes: 0, Downvotes: 12},
+		"new":  {Upvotes: 3, Downvotes: 3},
 	}
 
 	assert.Equal(t, expected, result)

@@ -37,7 +37,5 @@ func testStore(t *testing.T, store Store) {
 		assert.Equal(t, fmt.Sprintf("%v", writes[k]), fmt.Sprintf("%v", v))
 	}
 
-	if err, ok := store.Read("k5", nil).(MissingEntryError); !ok {
-		t.Errorf("Error was not MissingEntryError: %#v", err)
-	}
+	assert.IsType(t, store.Read("k5", nil), &MissingEntryError{})
 }

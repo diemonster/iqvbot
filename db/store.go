@@ -11,3 +11,10 @@ type Store interface {
 	// Write will write v at the specified key
 	Write(key string, v interface{}) error
 }
+
+// Keys used for writing/reading data to/from stores
+const (
+	AliasesKey = "aliases"
+	KarmaKey   = "karma"
+	KVSKey     = "kvs"
+)

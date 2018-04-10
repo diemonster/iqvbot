@@ -4,19 +4,19 @@ import (
 	"sort"
 )
 
-// Karma models hold information about a specific karma instance
-type Karma struct {
+// KarmaEntry holds information about a specific karma instance
+type KarmaEntry struct {
 	Upvotes   int
 	Downvotes int
 }
 
-// The Karmas object is used to manage Karma instances in a db.Store
-type Karmas map[string]Karma
+// The Karma object is used to manage KarmaEntrys in a db.Store
+type Karma map[string]KarmaEntry
 
 // SortKeys will return a slice of ordered keys.
 // If ascending is true, keys with the lowest karma are returned first.
 // If ascending is false, keys with the highest karma are returned first.
-func (k Karmas) SortKeys(ascending bool) []string {
+func (k Karma) SortKeys(ascending bool) []string {
 	sorter := newKarmaSorter(k)
 	if ascending {
 		sort.Sort(sorter)
@@ -28,19 +28,19 @@ func (k Karmas) SortKeys(ascending bool) []string {
 }
 
 type karmaSorter struct {
-	karmas Karmas
-	keys   []string
+	karma Karma
+	keys  []string
 }
 
-func newKarmaSorter(karmas Karmas) *karmaSorter {
-	keys := make([]string, 0, len(karmas))
-	for key := range karmas {
+func newKarmaSorter(karma Karma) *karmaSorter {
+	keys := make([]string, 0, len(karma))
+	for key := range karma {
 		keys = append(keys, key)
 	}
 
 	return &karmaSorter{
-		karmas: karmas,
-		keys:   keys,
+		karma: karma,
+		keys:  keys,
 	}
 }
 
@@ -56,7 +56,7 @@ func (k *karmaSorter) Swap(i, j int) {
 
 // Less is a method to satisfy sort.Interface
 func (k *karmaSorter) Less(i, j int) bool {
-	karmaI := k.karmas[k.keys[i]]
-	karmaJ := k.karmas[k.keys[j]]
-	return (karmaI.Upvotes - karmaI.Downvotes) < (karmaJ.Upvotes - karmaJ.Downvotes)
+	entryI := k.karma[k.keys[i]]
+	entryJ := k.karma[k.keys[j]]
+	return (entryI.Upvotes - entryI.Downvotes) < (entryJ.Upvotes - entryJ.Downvotes)
 }

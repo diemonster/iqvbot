@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/quintilesims/slackbot/db"
+	"github.com/quintilesims/iqvbot/db"
 )
 
 func init() {

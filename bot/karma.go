@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/nlopes/slack"
-	"github.com/quintilesims/slackbot/db"
-	"github.com/quintilesims/slackbot/models"
+
+	"github.com/quintilesims/iqvbot/db"
+	"github.com/quintilesims/iqvbot/models"
 	glob "github.com/ryanuber/go-glob"
 	"github.com/urfave/cli"
 	"github.com/zpatrick/slackbot"
@@ -23,27 +24,27 @@ func NewKarmaBehavior(store db.Store) slackbot.Behavior {
 			return nil
 		}
 
-		var update func(k models.Karma) models.Karma
+		var update func(models.KarmaEntry) models.KarmaEntry
 		switch {
 		case strings.HasSuffix(d.Msg.Text, "++"):
-			update = func(k models.Karma) models.Karma { k.Upvotes += 1; return k }
+			update = func(e models.KarmaEntry) models.KarmaEntry { e.Upvotes += 1; return e }
 		case strings.HasSuffix(d.Msg.Text, "--"):
-			update = func(k models.Karma) models.Karma { k.Downvotes += 1; return k }
+			update = func(e models.KarmaEntry) models.KarmaEntry { e.Downvotes += 1; return e }
 		case strings.HasSuffix(d.Msg.Text, "+-"), strings.HasSuffix(d.Msg.Text, "-+"):
-			update = func(k models.Karma) models.Karma { k.Upvotes += 1; k.Downvotes += 1; return k }
+			update = func(e models.KarmaEntry) models.KarmaEntry { e.Upvotes += 1; e.Downvotes += 1; return e }
 		default:
 			return nil
 		}
 
-		karmas := models.Karmas{}
-		if err := store.Read(db.KarmasKey, &karmas); err != nil {
+		karma := models.Karma{}
+		if err := store.Read(db.KarmaKey, &karma); err != nil {
 			return err
 		}
 
 		// strip '++', '--', etc. from key
 		key := d.Msg.Text[:len(d.Msg.Text)-2]
-		karmas[key] = update(karmas[key])
-		return store.Write(db.KarmasKey, karmas)
+		karma[key] = update(karma[key])
+		return store.Write(db.KarmaKey, karma)
 	}
 }
 
@@ -51,7 +52,7 @@ func NewKarmaBehavior(store db.Store) slackbot.Behavior {
 func NewKarmaCommand(store db.Store, w io.Writer) cli.Command {
 	return cli.Command{
 		Name:      "karma",
-		Usage:     "display karma for entries that match the given GLOB pattern",
+		Usage:     "display karma entries that match the given GLOB pattern",
 		ArgsUsage: "GLOB",
 		Flags: []cli.Flag{
 			cli.IntFlag{
@@ -70,31 +71,31 @@ func NewKarmaCommand(store db.Store, w io.Writer) cli.Command {
 				return slackbot.NewUserInputError("Argument GLOB is required")
 			}
 
-			karmas := models.Karmas{}
-			if err := store.Read(db.KarmasKey, &karmas); err != nil {
+			karma := models.Karma{}
+			if err := store.Read(db.KarmaKey, &karma); err != nil {
 				return err
 			}
 
-			results := models.Karmas{}
-			for k, v := range karmas {
+			matches := models.Karma{}
+			for k, v := range karma {
 				if glob.Glob(g, k) {
-					results[k] = v
+					matches[k] = v
 				}
 			}
 
-			keys := results.SortKeys(c.Bool("ascending"))
+			keys := matches.SortKeys(c.Bool("ascending"))
 			if len(keys) == 0 {
 				return slackbot.NewUserInputErrorf("Could not find any karma entries matching *%s*", g)
 			}
 
 			var text string
 			for i := 0; i < len(keys) && i < c.Int("count"); i++ {
-				karma := results[keys[i]]
+				entry := matches[keys[i]]
 				text += fmt.Sprintf("*%s*: %d (%d upvotes, %d downvotes)\n",
 					keys[i],
-					karma.Upvotes-karma.Downvotes,
-					karma.Upvotes,
-					karma.Downvotes)
+					entry.Upvotes-entry.Downvotes,
+					entry.Upvotes,
+					entry.Downvotes)
 			}
 
 			return slackbot.WriteString(w, text)

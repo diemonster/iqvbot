@@ -12,7 +12,6 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/quintilesims/iqvbot/bot"
 	"github.com/quintilesims/iqvbot/db"
-	"github.com/quintilesims/slackbot/utils"
 	"github.com/zpatrick/slackbot"
 
 	"github.com/urfave/cli"
@@ -60,6 +59,8 @@ func main() {
 		}
 
 		aliasStore := db.NewKeyValueStoreAdapter(store, db.AliasesKey)
+		kvsStore := db.NewKeyValueStoreAdapter(store, db.KVSKey)
+		triviaStore := slackbot.InMemoryTriviaStore{}
 
 		// todo: start cleanup runner
 		// todo: start reminders runner
@@ -125,7 +126,7 @@ func main() {
 				app.Usage = "making email obsolete one step at a time"
 				app.UsageText = "command [flags...] arguments..."
 				app.Version = Version
-				app.Writer = utils.WriterFunc(func(b []byte) (n int, err error) {
+				app.Writer = slackbot.WriterFunc(func(b []byte) (n int, err error) {
 					isDisplayingHelp = true
 					return w.Write(b)
 				})
@@ -134,9 +135,7 @@ func main() {
 					w.WriteString(text)
 				}
 				// todo: CandidateCommand
-				// todo: GlossaryCommand (stlib - rename)
 				// todo: InterviewCommand
-				// todo: KarmaCommand
 				// todo: TriviaCommand (stdlib)
 				app.Commands = []cli.Command{
 					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
@@ -148,9 +147,11 @@ func main() {
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, c.String("tenor-key"), w),
 					bot.NewKarmaCommand(store, w),
+					slackbot.NewKVSCommand(kvsStore, w),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
 						return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
 					}),
+					slackbot.NewTriviaCommand(triviaStore, slackbot.OpenTDBAPIEndpoint, data.Channel, w),
 				}
 
 				if err := app.Run(args); err != nil {

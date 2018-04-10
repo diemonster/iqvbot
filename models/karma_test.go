@@ -7,7 +7,7 @@ import (
 )
 
 func TestKarmaSortKeys(t *testing.T) {
-	karmas := Karmas{
+	karma := Karma{
 		"three": {Upvotes: 5, Downvotes: 5},
 		"one":   {Upvotes: 0, Downvotes: 10},
 		"five":  {Upvotes: 10, Downvotes: 0},
@@ -15,6 +15,6 @@ func TestKarmaSortKeys(t *testing.T) {
 		"four":  {Upvotes: 5, Downvotes: 0},
 	}
 
-	assert.Equal(t, []string{"one", "two", "three", "four", "five"}, karmas.SortKeys(true))
-	assert.Equal(t, []string{"five", "four", "three", "two", "one"}, karmas.SortKeys(false))
+	assert.Equal(t, []string{"one", "two", "three", "four", "five"}, karma.SortKeys(true))
+	assert.Equal(t, []string{"five", "four", "three", "two", "one"}, karma.SortKeys(false))
 }

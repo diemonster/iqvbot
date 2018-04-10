@@ -6,7 +6,7 @@ import "github.com/quintilesims/iqvbot/models"
 func Init(store Store) error {
 	initFunc := func(key string, v interface{}) error {
 		if err := store.Read(key, &v); err != nil {
-			if _, ok := err.(MissingEntryError); ok {
+			if _, ok := err.(*MissingEntryError); ok {
 				return store.Write(key, v)
 			}
 
@@ -20,7 +20,11 @@ func Init(store Store) error {
 		return err
 	}
 
-	if err := initFunc(KarmasKey, models.Karmas{}); err != nil {
+	if err := initFunc(KarmaKey, models.Karma{}); err != nil {
+		return err
+	}
+
+	if err := initFunc(KVSKey, map[string]string{}); err != nil {
 		return err
 	}
 
