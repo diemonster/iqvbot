@@ -1,11 +1,11 @@
 <div align="center">
     <img src=".github/logo.png" width="200" max-width="80%" alt="IQVBOT" />
-    <h1>SLACKBOT</h1>
+    <h1>IQVBOT</h1>
 </div>
 
 [![Build Status](https://travis-ci.org/quintilesims/iqvbot.svg?branch=master)](https://travis-ci.org/quintilesims/iqvbot)
 [![GoDoc](https://godoc.org/github.com/quintilesims/iqvbot?status.svg)](https://godoc.org/github.com/quintilesims/iqvbot)
-[![Go Report Card](https://goreportcard.com/badge/github.com/quintilesims/iqvbot)](https://goreportcard.com/report/github.com/quintilesims/slackbot)
+[![Go Report Card](https://goreportcard.com/badge/github.com/quintilesims/iqvbot)](https://goreportcard.com/report/github.com/quintilesims/iqvbot)
 
 # Overview
 
