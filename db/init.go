@@ -20,6 +20,14 @@ func Init(store Store) error {
 		return err
 	}
 
+	if err := initFunc(CandidatesKey, models.Candidates{}); err != nil {
+		return err
+	}
+
+	if err := initFunc(InterviewsKey, models.Interviews{}); err != nil {
+		return err
+	}
+
 	if err := initFunc(KarmaKey, models.Karma{}); err != nil {
 		return err
 	}

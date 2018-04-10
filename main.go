@@ -194,12 +194,13 @@ func main() {
 						aliasStore.Invalidate()
 						return nil
 					})),
+					//bot.NewCandidateComand(store, w),
 					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
 					bot.NewKarmaCommand(store, w),
-					slackbot.NewKVSCommand(kvsStore, w),
+					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
 						return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
 					}),

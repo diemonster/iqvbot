@@ -14,7 +14,9 @@ type Store interface {
 
 // Keys used for writing/reading data to/from stores
 const (
-	AliasesKey = "aliases"
-	KarmaKey   = "karma"
-	KVSKey     = "kvs"
+	AliasesKey    = "aliases"
+	CandidatesKey = "candidates"
+	InterviewsKey = "interviews"
+	KarmaKey      = "karma"
+	KVSKey        = "kvs"
 )
