@@ -1,0 +1,45 @@
+{
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
+        {
+            "name": "iqvbot",
+            "image": "${docker_image}",
+            "essential": true,
+            "memory": 128,
+            "environment": [
+                {
+                    "name": "SB_DEBUG",
+                    "value": "true"
+                },
+                {
+                    "name": "SB_SLACK_BOT_TOKEN",
+                    "value": "${slack_bot_token}"
+                },   
+                {
+                    "name": "SB_SLACK_APP_TOKEN",
+                    "value": "${slack_app_token}"
+                },
+                {
+                    "name": "SB_TENOR_KEY",
+                    "value": "${tenor_key}"
+                },
+                {
+                    "name": "SB_AWS_ACCESS_KEY",
+                    "value": "${aws_access_key}"
+                },
+                {
+                    "name": "SB_AWS_SECRET_KEY",
+                    "value": "${aws_secret_key}"
+                },
+                {
+                    "name": "SB_AWS_REGION",
+                    "value": "${aws_region}"
+                },
+                {
+                    "name": "SB_DYNAMODB_TABLE",
+                    "value": "${dynamodb_table}"
+                }
+            ]
+        }
+    ]
+}
