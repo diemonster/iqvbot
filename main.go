@@ -10,7 +10,7 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/nlopes/slack"
-	"github.com/quintilesims/iqvbot/behaviors"
+	"github.com/quintilesims/iqvbot/bot"
 	"github.com/quintilesims/iqvbot/db"
 	"github.com/quintilesims/slackbot/utils"
 	"github.com/zpatrick/slackbot"
@@ -81,7 +81,7 @@ func main() {
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
 			slackbot.NewAliasBehavior(aliasStore),
-			behaviors.NewKarmaBehavior(store),
+			bot.NewKarmaBehavior(store),
 		}
 
 		// start the real-time-messaging api
@@ -147,6 +147,7 @@ func main() {
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, c.String("tenor-key"), w),
+					bot.NewKarmaCommand(store, w),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
 						return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
 					}),

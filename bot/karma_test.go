@@ -1,4 +1,4 @@
-package behaviors
+package bot
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/quintilesims/slackbot/db"
 	"github.com/quintilesims/slackbot/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/zpatrick/slackbot"
 )
 
 func TestKarmaBehavior(t *testing.T) {
@@ -22,15 +23,15 @@ func TestKarmaBehavior(t *testing.T) {
 	}
 
 	events := []slack.RTMEvent{
-		NewMessageRTMEvent("dogs++"),
-		NewMessageRTMEvent("dogs++"),
-		NewMessageRTMEvent("cats--"),
-		NewMessageRTMEvent("cats--"),
-		NewMessageRTMEvent("new++"),
-		NewMessageRTMEvent("new--"),
-		NewMessageRTMEvent("new+-"),
-		NewMessageRTMEvent("new-+"),
-		NewMessageRTMEvent("blah blah"),
+		slackbot.NewMessageRTMEvent("dogs++"),
+		slackbot.NewMessageRTMEvent("dogs++"),
+		slackbot.NewMessageRTMEvent("cats--"),
+		slackbot.NewMessageRTMEvent("cats--"),
+		slackbot.NewMessageRTMEvent("new++"),
+		slackbot.NewMessageRTMEvent("new--"),
+		slackbot.NewMessageRTMEvent("new+-"),
+		slackbot.NewMessageRTMEvent("new-+"),
+		slackbot.NewMessageRTMEvent("blah blah"),
 		{},
 	}
 
@@ -53,4 +54,11 @@ func TestKarmaBehavior(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, result)
+}
+
+// TestKarmaCommandDefaults
+// TestKarmaCommandWithCountFlag
+// TestKarmaCommandWithAscendingFlag
+// TestKarmaCommandUserInputErrors
+func TestKarmaCommandWithDefaults(t *testing.T) {
 }
