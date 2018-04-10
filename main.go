@@ -8,6 +8,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/kballard/go-shellquote"
 	"github.com/nlopes/slack"
 	"github.com/quintilesims/iqvbot/bot"
@@ -47,13 +50,63 @@ func main() {
 		cli.StringFlag{
 			Name:   "tenor-key",
 			Usage:  "authentication key for the Tenor API",
-			EnvVar: "SB_TENOR_KEY",
+			EnvVar: "IB_TENOR_KEY",
+		},
+		cli.StringFlag{
+			Name:   "aws-access-key",
+			Usage:  "access key for aws api",
+			EnvVar: "IB_AWS_ACCESS_KEY",
+		},
+		cli.StringFlag{
+			Name:   "aws-secret-key",
+			Usage:  "secret key for aws api",
+			EnvVar: "IB_AWS_SECRET_KEY",
+		},
+		cli.StringFlag{
+			Name:   "aws-region",
+			Usage:  "region for aws api",
+			Value:  "us-west-2",
+			EnvVar: "IB_AWS_REGION",
+		},
+		cli.StringFlag{
+			Name:   "dynamodb-table",
+			Usage:  "name of the dynamodb table",
+			EnvVar: "IB_DYNAMODB_TABLE",
 		},
 	}
 
 	iqvbot.Action = func(c *cli.Context) error {
-		// todo: create dynamodb data store
-		store := db.NewMemoryStore()
+		tenorKey := c.String("tenor-key")
+		if tenorKey == "" {
+			return fmt.Errorf("Tenor Key is not set! (envvar: IB_TENOR_KEY)")
+		}
+
+		accessKey := c.String("aws-access-key")
+		if accessKey == "" {
+			return fmt.Errorf("AWS Access Key is not set! (envvar: IB_AWS_ACCESS_KEY)")
+		}
+
+		secretKey := c.String("aws-secret-key")
+		if secretKey == "" {
+			return fmt.Errorf("AWS Secret Key is not set! (envvar: IB_AWS_SECRET_KEY)")
+		}
+
+		region := c.String("aws-region")
+		if region == "" {
+			return fmt.Errorf("AWS Region is not set! (envvar: IB_AWS_REGION)")
+		}
+
+		table := c.String("dynamodb-table")
+		if table == "" {
+			return fmt.Errorf("DynamoDB Table is not set! (envvar: IB_DYNAMODB_TABLE)")
+		}
+
+		config := &aws.Config{
+			Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+			Region:      aws.String(region),
+		}
+
+		store := db.NewDynamoDBStore(session.New(config), table)
 		if err := db.Init(store); err != nil {
 			return err
 		}
@@ -136,7 +189,6 @@ func main() {
 				}
 				// todo: CandidateCommand
 				// todo: InterviewCommand
-				// todo: TriviaCommand (stdlib)
 				app.Commands = []cli.Command{
 					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
 						aliasStore.Invalidate()
@@ -145,7 +197,7 @@ func main() {
 					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
-					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, c.String("tenor-key"), w),
+					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
