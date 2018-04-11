@@ -23,6 +23,7 @@ func TestInit(t *testing.T) {
 		InterviewsKey,
 		KarmaKey,
 		KVSKey,
+		PipelinesKey,
 	}
 
 	assert.ElementsMatch(t, expected, keys)

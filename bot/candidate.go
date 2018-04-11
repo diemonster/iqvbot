@@ -99,8 +99,10 @@ func NewCandidateCommand(store db.Store, w io.Writer) cli.Command {
 					candidates.Sort(!c.Bool("ascending"))
 
 					text := "Here are the candidates I have: \n"
-					for i := 0; i < c.Int("count") && i < len(candidates); i++ {
-						text += fmt.Sprintf("*%s* \n", candidates[i].Name)
+					for i := 0; i < c.Int("limit") && i < len(candidates); i++ {
+						text += fmt.Sprintf("*%s* (manager: %s)\n",
+							candidates[i].Name,
+							slackbot.EscapeUserID(candidates[i].ManagerID))
 					}
 
 					return slackbot.WriteString(w, text)
@@ -122,7 +124,7 @@ func NewCandidateCommand(store db.Store, w io.Writer) cli.Command {
 					}
 
 					if ok := candidates.Delete(name); !ok {
-						return slackbot.NewUserInputErrorf("I don't have any candidates by the name *%s*", name)
+						return candidateDoesNotExist(name)
 					}
 
 					if err := store.Write(db.CandidatesKey, candidates); err != nil {
@@ -166,7 +168,7 @@ func NewCandidateCommand(store db.Store, w io.Writer) cli.Command {
 
 					candidate, ok := candidates.Get(name)
 					if !ok {
-						return slackbot.NewUserInputErrorf("I don't have any candidates by the name *%s*", name)
+						return candidateDoesNotExist(name)
 					}
 
 					text := fmt.Sprintf("*%s* (manager: %s)\n", candidate.Name, slackbot.EscapeUserID(candidate.ManagerID))
@@ -227,7 +229,7 @@ func NewCandidateCommand(store db.Store, w io.Writer) cli.Command {
 
 					candidate, ok := candidates.Get(name)
 					if !ok {
-						return slackbot.NewUserInputErrorf("I don't have any candidates by the name *%s*", name)
+						return candidateDoesNotExist(name)
 					}
 
 					update(candidate)
@@ -254,4 +256,8 @@ func parseMetaFlag(inputs []string) (map[string]string, error) {
 	}
 
 	return meta, nil
+}
+
+func candidateDoesNotExist(name string) *slackbot.UserInputError {
+	return slackbot.NewUserInputErrorf("I don't have any candidates by the name *%s*", name)
 }

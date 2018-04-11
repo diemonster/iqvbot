@@ -19,4 +19,5 @@ const (
 	InterviewsKey = "interviews"
 	KarmaKey      = "karma"
 	KVSKey        = "kvs"
+	PipelinesKey  = "pipelines"
 )
