@@ -48,8 +48,3 @@ variable "service_name" {
 variable "environment_id" {
   description = "ID of the Layer0 environment to build the service"
 }
-
-variable "scale" {
-  description = "The scale of the service"
-  default     = 1
-}

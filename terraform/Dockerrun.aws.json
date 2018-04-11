@@ -8,35 +8,35 @@
             "memory": 128,
             "environment": [
                 {
-                    "name": "SB_DEBUG",
+                    "name": "BB_DEBUG",
                     "value": "true"
                 },
                 {
-                    "name": "SB_SLACK_BOT_TOKEN",
+                    "name": "IB_SLACK_BOT_TOKEN",
                     "value": "${slack_bot_token}"
                 },   
                 {
-                    "name": "SB_SLACK_APP_TOKEN",
+                    "name": "IB_SLACK_APP_TOKEN",
                     "value": "${slack_app_token}"
                 },
                 {
-                    "name": "SB_TENOR_KEY",
+                    "name": "IB_TENOR_KEY",
                     "value": "${tenor_key}"
                 },
                 {
-                    "name": "SB_AWS_ACCESS_KEY",
+                    "name": "IB_AWS_ACCESS_KEY",
                     "value": "${aws_access_key}"
                 },
                 {
-                    "name": "SB_AWS_SECRET_KEY",
+                    "name": "IB_AWS_SECRET_KEY",
                     "value": "${aws_secret_key}"
                 },
                 {
-                    "name": "SB_AWS_REGION",
+                    "name": "IB_AWS_REGION",
                     "value": "${aws_region}"
                 },
                 {
-                    "name": "SB_DYNAMODB_TABLE",
+                    "name": "IB_DYNAMODB_TABLE",
                     "value": "${dynamodb_table}"
                 }
             ]
