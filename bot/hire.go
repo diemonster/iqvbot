@@ -11,6 +11,9 @@ import (
 	"github.com/zpatrick/slackbot"
 )
 
+// todo: ensure only the candidate's manager can do the step command?
+// todo: make step a subcommand? !hire step next, !hire step prev
+
 // NewHireCommand create a cli.Command that allows users to ...
 func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 	return cli.Command{
@@ -62,11 +65,29 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 				},
 			},
 			{
-				Name:      "stop",
+				Name:      "rm",
 				Usage:     "remove a candidate from a hiring pipeline",
 				ArgsUsage: "CANDIDATE",
 				Action: func(c *cli.Context) error {
-					return nil
+					candidateName := strings.Join(c.Args(), " ")
+					if candidateName == "" {
+						return slackbot.NewUserInputError("Argument CANDIDATE is required")
+					}
+
+					pipelines := models.Pipelines{}
+					if err := store.Read(db.PipelinesKey, &pipelines); err != nil {
+						return err
+					}
+
+					if !pipelines.Delete(candidateName) {
+						return hiringPipelineDoesNotExist(candidateName)
+					}
+
+					if err := store.Write(db.PipelinesKey, pipelines); err != nil {
+						return err
+					}
+
+					return slackbot.WriteStringf(w, "Ok, I've deleted *%s's* hiring pipeline", candidateName)
 				},
 			},
 			{
@@ -84,7 +105,114 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					return nil
+					pipelines := models.Pipelines{}
+					if err := store.Read(db.PipelinesKey, &pipelines); err != nil {
+						return err
+					}
+
+					if len(pipelines) == 0 {
+						return slackbot.WriteString(w, "There aren't any candidates in hiring pipelines at the moment")
+					}
+
+					// todo: this assumes all pipelines are hiring pipelines; I shoud probably add a
+					// Type field to pipelines and sort by that
+					pipelines.Sort(!c.Bool("ascending"))
+
+					text := "Here are the candidates currently in hiring pipelines: \n"
+					for i := 0; i < c.Int("limit") && i < len(pipelines); i++ {
+						text += fmt.Sprintf("*%s*\n", strings.Title(pipelines[i].Name))
+					}
+
+					return slackbot.WriteString(w, text)
+				},
+			},
+			{
+				Name:      "next",
+				Usage:     "move on to the next step in a hiring pipeline",
+				ArgsUsage: "CANDIDATE",
+				Action: func(c *cli.Context) error {
+					candidateName := strings.Join(c.Args(), " ")
+					if candidateName == "" {
+						return slackbot.NewUserInputError("Argument CANDIDATE is required")
+					}
+
+					candidates := models.Candidates{}
+					if err := store.Read(db.CandidatesKey, &candidates); err != nil {
+						return err
+					}
+
+					candidate, ok := candidates.Get(candidateName)
+					if !ok {
+						return candidateDoesNotExist(candidateName)
+					}
+
+					pipelines := models.Pipelines{}
+					if err := store.Read(db.PipelinesKey, &pipelines); err != nil {
+						return err
+					}
+
+					pipeline, ok := pipelines.Get(candidateName)
+					if !ok {
+						return hiringPipelineDoesNotExist(candidateName)
+					}
+
+					if pipeline.CurrentStep == len(pipeline.Steps) {
+						return slackbot.NewUserInputError("This pipeline has already been completed")
+					}
+
+					pipeline.CurrentStep += 1
+					if err := store.Write(db.PipelinesKey, pipelines); err != nil {
+						return err
+					}
+
+					name := strings.Title(candidateName)
+					escapedManagerID := slackbot.EscapeUserID(candidate.ManagerID)
+					if pipeline.CurrentStep >= len(pipeline.Steps) {
+						text := "There are no more steps in this pipeline.\n"
+						text += fmt.Sprintf("Thank you for completing *%s's* hiring pipeline!\n", name)
+						text += fmt.Sprintf("%s will no longer receive reminders to finish this process.", escapedManagerID)
+						return slackbot.WriteString(w, text)
+					}
+
+					text := fmt.Sprintf("Ok, I'll make a note that you've completed step *%d* ", pipeline.CurrentStep)
+					text += fmt.Sprintf("of *%s's* hiring pipeline.\n", name)
+					text += fmt.Sprintf("The next step is to: `%s`", pipeline.Steps[pipeline.CurrentStep])
+					return slackbot.WriteString(w, text)
+				},
+			},
+			{
+				Name:      "prev",
+				Usage:     "revert to the previous step in a hiring pipeline",
+				ArgsUsage: "CANDIDATE",
+				Action: func(c *cli.Context) error {
+					candidateName := strings.Join(c.Args(), " ")
+					if candidateName == "" {
+						return slackbot.NewUserInputError("Argument CANDIDATE is required")
+					}
+
+					pipelines := models.Pipelines{}
+					if err := store.Read(db.PipelinesKey, &pipelines); err != nil {
+						return err
+					}
+
+					pipeline, ok := pipelines.Get(candidateName)
+					if !ok {
+						return hiringPipelineDoesNotExist(candidateName)
+					}
+
+					if pipeline.CurrentStep == 0 {
+						return slackbot.NewUserInputError("This pipeline is already on the first step")
+					}
+
+					pipeline.CurrentStep -= 1
+					if err := store.Write(db.PipelinesKey, pipelines); err != nil {
+						return err
+					}
+
+					name := strings.Title(candidateName)
+					text := fmt.Sprintf("Ok, I've reverted *%s's* hiring pipeline back one step.\n", name)
+					text += fmt.Sprintf("The current step is to: `%s`\n", pipeline.Steps[pipeline.CurrentStep])
+					return slackbot.WriteString(w, text)
 				},
 			},
 			{
@@ -92,7 +220,44 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 				Usage:     "show the hiring pipeline for a candidate",
 				ArgsUsage: "CANDIDATE",
 				Action: func(c *cli.Context) error {
-					return nil
+					candidateName := strings.Join(c.Args(), " ")
+					if candidateName == "" {
+						return slackbot.NewUserInputError("Argument CANDIDATE is required")
+					}
+
+					candidates := models.Candidates{}
+					if err := store.Read(db.CandidatesKey, &candidates); err != nil {
+						return err
+					}
+
+					candidate, ok := candidates.Get(candidateName)
+					if !ok {
+						return candidateDoesNotExist(candidateName)
+					}
+
+					pipelines := models.Pipelines{}
+					if err := store.Read(db.PipelinesKey, &pipelines); err != nil {
+						return err
+					}
+
+					pipeline, ok := pipelines.Get(candidateName)
+					if !ok {
+						return hiringPipelineDoesNotExist(candidateName)
+					}
+
+					var steps string
+					for i, step := range pipeline.Steps {
+						steps += fmt.Sprintf("%d. %s\n", i+1, step)
+					}
+
+					name := strings.Title(candidateName)
+					escapedManagerID := slackbot.EscapeUserID(candidate.ManagerID)
+					text := fmt.Sprintf("This is the hiring pipeline for *%s*: \n", name)
+					text += fmt.Sprintf("```%s```\n", steps)
+					text += fmt.Sprintf("*%s's* manager, %s, ", name, escapedManagerID)
+					text += fmt.Sprintf("is currently on step *%d* of the hiring pipeline: ", pipeline.CurrentStep+1)
+					text += fmt.Sprintf("`%s`", pipeline.Steps[pipeline.CurrentStep])
+					return slackbot.WriteString(w, text)
 				},
 			},
 		},
@@ -110,28 +275,6 @@ func newHiringPipeline(candidateName string) models.Pipeline {
 	}
 }
 
-/*
-u: !hire start zack patrick
-b: Ok, I've started a hiring pipeline for *Zack Patrick*.
-I will send daily reminders to *Zack Patrick's* manager, @bivers, to complete the hiring pipeline.
-
-u: !hire show zack patrick
-b: This is the hiring pipeline for *Zack Patrick*:
-```
-1. Do the first thing
-2. Do the second thing
-3. Do the third thing
-```
-
-*Zack Patrick's* manager, @bivers, is currently on step *1* of the hiring pipeline: `Do the first thing`.
-
-u: !hire next zack patrick
-b: Ok, I'll make a note that you've completed step *1* of *Zack Patrick's* hiring pipeline.
-The next step is to *Do the third thing*
-( or )
-There are no more steps for this pipeline.
-Thank you for completing *Zack Patrick's* hiring pipeline.
-You will no longer receive daily reminders to finish this process.
-
- - No '!hire back' for now: users can just delete/re-create
-*/
+func hiringPipelineDoesNotExist(name string) *slackbot.UserInputError {
+	return slackbot.NewUserInputErrorf("There aren't any candidates in a hiring pipeline with the name *%s*", name)
+}
