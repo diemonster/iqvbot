@@ -98,6 +98,9 @@ func NewKarmaCommand(store db.Store, w io.Writer) cli.Command {
 					entry.Downvotes)
 			}
 
+			// TODO: Maybe move to Write string, otherwise there is a leading space
+			text = strings.Trim(text, "\n")
+
 			return slackbot.WriteString(w, text)
 		},
 	}
