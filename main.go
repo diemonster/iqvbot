@@ -203,6 +203,7 @@ func main() {
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
+					slackbot.NewHelpCommand(w),
 					bot.NewHireCommand(store, w),
 					bot.NewInterviewCommand(store, w),
 					bot.NewKarmaCommand(store, w),
