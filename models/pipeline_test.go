@@ -6,6 +6,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPipelinesFilterByType(t *testing.T) {
+	pipelines := Pipelines{
+		{Name: "alpha", Type: "a"},
+		{Name: "beta", Type: "b"},
+		{Name: "charlie", Type: "a"},
+	}
+
+	pipelines.FilterByType("a")
+	expected := Pipelines{
+		{Name: "alpha", Type: "a"},
+		{Name: "charlie", Type: "a"},
+	}
+
+	assert.Equal(t, expected, pipelines)
+}
+
 func TestPipelineGet(t *testing.T) {
 	pipelines := Pipelines{
 		{Name: "alpha"},

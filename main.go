@@ -131,13 +131,16 @@ func main() {
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
 		// start the runners
+		// todo: update reminder runner to send a reminder for hiring pipelines   
 		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
 		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
-			slackbot.NewAliasBehavior(aliasStore),
+			slackbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
+				return !strings.Contains(m.Text, " alias ")
+			}),
 			bot.NewKarmaBehavior(store),
 		}
 
@@ -190,7 +193,6 @@ func main() {
 					text := fmt.Sprintf("Command '%s' does not exist", command)
 					w.WriteString(text)
 				}
-				// todo: InterviewCommand
 				app.Commands = []cli.Command{
 					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
 						aliasStore.Invalidate()
@@ -202,6 +204,7 @@ func main() {
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
 					bot.NewHireCommand(store, w),
+					bot.NewInterviewCommand(store, w),
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {

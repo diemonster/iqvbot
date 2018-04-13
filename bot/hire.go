@@ -21,7 +21,7 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 		Usage: "manage hiring pipelines",
 		Subcommands: []cli.Command{
 			{
-				Name:      "start",
+				Name:      "add",
 				Usage:     "start a hiring pipeline for a candidate",
 				ArgsUsage: "CANDIDATE",
 				Action: func(c *cli.Context) error {
@@ -110,12 +110,11 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 						return err
 					}
 
+					pipelines.FilterByType(models.HiringPipelineType)
 					if len(pipelines) == 0 {
 						return slackbot.WriteString(w, "There aren't any candidates in hiring pipelines at the moment")
 					}
 
-					// todo: this assumes all pipelines are hiring pipelines; I shoud probably add a
-					// Type field to pipelines and sort by that
 					pipelines.Sort(!c.Bool("ascending"))
 
 					text := "Here are the candidates currently in hiring pipelines: \n"
@@ -267,10 +266,13 @@ func NewHireCommand(store db.Store, w io.Writer) cli.Command {
 func newHiringPipeline(candidateName string) models.Pipeline {
 	return models.Pipeline{
 		Name: candidateName,
+		Type: models.HiringPipelineType,
 		Steps: []string{
-			"Do first thing",
-			"Do second thing",
-			"Do third thing",
+			"Order hardware (latop, keyboard, mouse, dock, etc.)",
+			"Order software (MSDN, etc.)",
+			"Grant Access to PSA",
+			"Grant Access to TinyPulse",
+			"Create personalized success plan",
 		},
 	}
 }

@@ -5,15 +5,29 @@ import (
 	"strings"
 )
 
+// different pipeline types
+const HiringPipelineType = "hiring"
+
 // A Pipeline has a name and series of steps
 type Pipeline struct {
 	Name        string
+	Type        string
 	CurrentStep int
 	Steps       []string
 }
 
 // The Pipelines object is used to manage Pipelines in a db.Store
 type Pipelines []*Pipeline
+
+// FilterByType removes any pipeline that does not match the specified type
+func (p *Pipelines) FilterByType(pipelineType string) {
+	for i := 0; i < len(*p); i++ {
+		if (*p)[i].Type != pipelineType {
+			(*p) = append((*p)[:i], (*p)[i+1:]...)
+			i--
+		}
+	}
+}
 
 // Get will return the pipeline with the matching name.
 // The name is not case sensitive.

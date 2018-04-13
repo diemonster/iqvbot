@@ -11,7 +11,67 @@ import (
 	"github.com/zpatrick/slackbot/mock_slack"
 )
 
-func TestGetInterviewReminders(t *testing.T) {
+func TestGetHiringPipelineTimers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockSlackClient := mock_slack.NewMockSlackClient(ctrl)
+
+	candidates := models.Candidates{
+		{
+			Name:      "John Doe",
+			ManagerID: "uid",
+		},
+	}
+
+	pipelines := models.Pipelines{
+		{
+			Name:  "John Doe",
+			Type:  models.HiringPipelineType,
+			Steps: []string{"one", "two", "three"},
+		},
+	}
+
+	store := newMemoryStore(t)
+	if err := store.Write(db.CandidatesKey, candidates); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := store.Write(db.PipelinesKey, pipelines); err != nil {
+		t.Fatal(err)
+	}
+
+	c := make(chan bool)
+	record := func(channel string, options ...slack.MsgOption) {
+		c <- true
+	}
+
+	mockSlackClient.EXPECT().
+		OpenIMChannel("uid").
+		Return(false, false, "cid", nil)
+
+	mockSlackClient.EXPECT().
+		SendMessage("cid", gomock.Any()).
+		Do(record).
+		Return("", "", "", nil)
+
+	timers, err := getHiringPipelineTimers(store, mockSlackClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// reset the timers to execute immediately
+	for _, timer := range timers {
+		timer.Reset(0)
+	}
+
+	select {
+	case <-c:
+	case <-time.After(time.Second):
+		t.Fatal("timeout")
+	}
+}
+
+func TestGetInterviewTimers(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockSlackClient := mock_slack.NewMockSlackClient(ctrl)
@@ -34,8 +94,13 @@ func TestGetInterviewReminders(t *testing.T) {
 	}
 
 	for _, id := range []string{"uid1", "uid2", "uid3"} {
+		channelID := "d" + id
 		mockSlackClient.EXPECT().
-			SendMessage(id, gomock.Any()).
+			OpenIMChannel(id).
+			Return(false, false, channelID, nil)
+
+		mockSlackClient.EXPECT().
+			SendMessage(channelID, gomock.Any()).
 			Do(record).
 			Return("", "", "", nil)
 	}
