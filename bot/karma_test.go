@@ -3,7 +3,6 @@ package bot
 import (
 	"bytes"
 	"context"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -59,88 +58,21 @@ func TestKarmaBehavior(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-func TestKarmaCommand(t *testing.T) {
+func TestKarmaCommandDefaults(t *testing.T) {
 	store := newMemoryStore(t)
+
 	karma := models.Karma{
-		"alpha": models.KarmaEntry{Upvotes: 10, Downvotes: 0},
-	}
-
-	if err := store.Write(db.KarmaKey, karma); err != nil {
-		t.Fatal(err)
-	}
-
-	w := bytes.NewBuffer(nil)
-	cmd := NewKarmaCommand(store, w)
-	if err := slackbot.NewTestApp(cmd).Run(strings.Split("iqvbot karma alpha", " ")); err != nil {
-		t.Fatal(err)
-	}
-
-	output := w.String()
-	for name, values := range karma {
-		assert.Contains(t, output, name)
-		assert.Contains(t, output, strconv.Itoa(values.Downvotes))
-		assert.Contains(t, output, strconv.Itoa(values.Upvotes))
-	}
-}
-
-func TestKarmaCommandWithCountFlag(t *testing.T) {
-	store := newMemoryStore(t)
-	karma := models.Karma{
-		"alpha":   models.KarmaEntry{Upvotes: 1, Downvotes: 0},
-		"beta":    models.KarmaEntry{Upvotes: 2, Downvotes: 0},
-		"charlie": models.KarmaEntry{Upvotes: 3, Downvotes: 0},
-		"delta":   models.KarmaEntry{Upvotes: 4, Downvotes: 0},
-		"echo":    models.KarmaEntry{Upvotes: 5, Downvotes: 0},
+		"alpha":   models.KarmaEntry{Upvotes: 11, Downvotes: 0},
+		"beta":    models.KarmaEntry{Upvotes: 10, Downvotes: 0},
+		"charlie": models.KarmaEntry{Upvotes: 9, Downvotes: 0},
+		"delta":   models.KarmaEntry{Upvotes: 8, Downvotes: 0},
+		"echo":    models.KarmaEntry{Upvotes: 7, Downvotes: 0},
 		"foxtrot": models.KarmaEntry{Upvotes: 6, Downvotes: 0},
-		"golf":    models.KarmaEntry{Upvotes: 7, Downvotes: 0},
-		"hotel":   models.KarmaEntry{Upvotes: 8, Downvotes: 0},
-		"india":   models.KarmaEntry{Upvotes: 9, Downvotes: 0},
-		"juliett": models.KarmaEntry{Upvotes: 10, Downvotes: 0},
-		"kilo":    models.KarmaEntry{Upvotes: 11, Downvotes: 0},
-	}
-
-	if err := store.Write(db.KarmaKey, karma); err != nil {
-		t.Fatal(err)
-	}
-
-	cases := map[string]struct {
-		Input    []string
-		Expected int
-	}{
-		"check default": {
-			Input:    strings.Split("iqvbot karma *", " "),
-			Expected: 10,
-		},
-		"count one": {
-			Input:    strings.Split("iqvbot karma --count=1 *", " "),
-			Expected: 1,
-		},
-		"count three": {
-			Input:    strings.Split("iqvbot karma --count=3 *", " "),
-			Expected: 3,
-		},
-	}
-
-	for name := range cases {
-		t.Run(name, func(t *testing.T) {
-			w := bytes.NewBuffer(nil)
-			cmd := NewKarmaCommand(store, w)
-
-			if err := slackbot.NewTestApp(cmd).Run(cases[name].Input); err != nil {
-				t.Fatal(err)
-			}
-
-			assert.Len(t, strings.Split(w.String(), "\n"), cases[name].Expected)
-		})
-	}
-}
-
-func TestKarmaCommandWithAscendingFlag(t *testing.T) {
-	store := newMemoryStore(t)
-	karma := models.Karma{
-		"alpha":   models.KarmaEntry{Upvotes: 1, Downvotes: 0},
-		"beta":    models.KarmaEntry{Upvotes: 2, Downvotes: 0},
-		"charlie": models.KarmaEntry{Upvotes: 3, Downvotes: 0},
+		"golf":    models.KarmaEntry{Upvotes: 5, Downvotes: 0},
+		"hotel":   models.KarmaEntry{Upvotes: 4, Downvotes: 0},
+		"india":   models.KarmaEntry{Upvotes: 3, Downvotes: 0},
+		"juliet":  models.KarmaEntry{Upvotes: 2, Downvotes: 0},
+		"kilo":    models.KarmaEntry{Upvotes: 1, Downvotes: 0},
 	}
 
 	if err := store.Write(db.KarmaKey, karma); err != nil {
@@ -151,31 +83,128 @@ func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 		Input    []string
 		Expected []string
 	}{
-		"enabled": {
-			Input:    strings.Split("iqvbot karma --ascending *", " "),
-			Expected: []string{"1", "2", "3"},
+		"exact match": {
+			Input:    strings.Split("iqvbot karma alpha", " "),
+			Expected: []string{"alpha"},
 		},
-		"disabled/default": {
+		"wildcard preceding": {
+			Input:    strings.Split("iqvbot karma *lpha", " "),
+			Expected: []string{"alpha"},
+		},
+		"wildcard tailing": {
+			Input:    strings.Split("iqvbot karma alph*", " "),
+			Expected: []string{"alpha"},
+		},
+		"wildcard multi-match": {
+			Input:    strings.Split("iqvbot karma *a", " "),
+			Expected: []string{"alpha", "beta", "delta", "india"},
+		},
+		"two wildcards": {
+			Input:    strings.Split("iqvbot karma *e*", " "),
+			Expected: []string{"beta", "charlie", "delta", "echo", "hotel", "juliet"},
+		},
+		"count default": {
 			Input:    strings.Split("iqvbot karma *", " "),
-			Expected: []string{"3", "2", "1"},
+			Expected: []string{"alpha", "beta", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet"},
+		},
+		"descending default": {
+			Input:    strings.Split("iqvbot karma *o", " "),
+			Expected: []string{"echo", "kilo"},
 		},
 	}
 
-	for name := range cases {
+	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			w := bytes.NewBuffer(nil)
 			cmd := NewKarmaCommand(store, w)
 
-			if err := slackbot.NewTestApp(cmd).Run(cases[name].Input); err != nil {
+			if err := slackbot.NewTestApp(cmd).Run(c.Input); err != nil {
 				t.Fatal(err)
 			}
 
 			output := strings.Split(w.String(), "\n")
 
-			for i, entry := range output {
-				assert.Contains(t, entry, cases[name].Expected[i])
+			for i, result := range output {
+				if result != "" {
+					assert.Contains(t, result, c.Expected[i])
+				}
 			}
 		})
+	}
+}
+
+func TestKarmaCommandWithCountFlag(t *testing.T) {
+	store := newMemoryStore(t)
+	karma := models.Karma{
+		"alpha":   models.KarmaEntry{Upvotes: 4, Downvotes: 0},
+		"beta":    models.KarmaEntry{Upvotes: 3, Downvotes: 0},
+		"charlie": models.KarmaEntry{Upvotes: 2, Downvotes: 0},
+		"delta":   models.KarmaEntry{Upvotes: 1, Downvotes: 0},
+	}
+
+	if err := store.Write(db.KarmaKey, karma); err != nil {
+		t.Fatal(err)
+	}
+
+	cases := map[string]struct {
+		Input    []string
+		Expected []string
+	}{
+		"count one": {
+			Input:    strings.Split("iqvbot karma --count=1 *", " "),
+			Expected: []string{"alpha"},
+		},
+		"count three": {
+			Input:    strings.Split("iqvbot karma --count=3 *", " "),
+			Expected: []string{"alpha", "beta", "charlie"},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			w := bytes.NewBuffer(nil)
+			cmd := NewKarmaCommand(store, w)
+
+			if err := slackbot.NewTestApp(cmd).Run(c.Input); err != nil {
+				t.Fatal(err)
+			}
+
+			output := strings.Split(w.String(), "\n")
+			for i, result := range output {
+				if result != "" {
+					assert.Contains(t, result, c.Expected[i])
+				}
+			}
+		})
+	}
+}
+
+func TestKarmaCommandWithAscendingFlag(t *testing.T) {
+	store := newMemoryStore(t)
+	karma := models.Karma{
+		"alpha":   models.KarmaEntry{Upvotes: 3, Downvotes: 0},
+		"beta":    models.KarmaEntry{Upvotes: 2, Downvotes: 0},
+		"charlie": models.KarmaEntry{Upvotes: 1, Downvotes: 0},
+	}
+
+	if err := store.Write(db.KarmaKey, karma); err != nil {
+		t.Fatal(err)
+	}
+
+	w := bytes.NewBuffer(nil)
+	cmd := NewKarmaCommand(store, w)
+
+	if err := slackbot.NewTestApp(cmd).Run(strings.Split("iqvbot karma --ascending *", " ")); err != nil {
+		t.Fatal(err)
+	}
+
+	output := strings.Split(w.String(), "\n")
+	expected := []string{"charlie", "beta", "alpha"}
+
+	for i, result := range output {
+		if result != "" {
+			assert.Contains(t, result, expected[i])
+		}
 	}
 }
 
