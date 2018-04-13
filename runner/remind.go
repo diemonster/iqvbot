@@ -12,7 +12,7 @@ import (
 	"github.com/zpatrick/slackbot"
 )
 
-// InterviewReminders will be send out 1 hour before the interview
+// The amount of time before the interview starts to send a reminder
 const InterviewReminderLead = time.Hour
 
 // The hour and minute to send hiring pipeline reminders
@@ -116,14 +116,14 @@ func getInterviewTimers(store db.Store, client slackbot.SlackClient) ([]*time.Ti
 	timers := []*time.Timer{}
 	for i := 0; i < len(interviews); i++ {
 		interview := interviews[i]
-		d := interview.Time.UTC().Sub(time.Now().UTC())
+		d := time.Until(interview.Time.In(time.Local))
 		if d < InterviewReminderLead {
 			continue
 		}
 
 		timer := time.AfterFunc(d, func() {
 			for _, interviewerID := range interview.InterviewerIDs {
-				text := fmt.Sprintf("Hi <@%s>! Just reminding you that ", interviewerID)
+				text := "Hello! Just reminding you that "
 				text += fmt.Sprintf("you have an interview with *%s* ", interview.Candidate)
 				text += fmt.Sprintf(" at %s", interview.Time.In(time.Local).Format("03:04:05PM"))
 

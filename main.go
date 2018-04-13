@@ -131,7 +131,7 @@ func main() {
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
 		// start the runners
-		// todo: update reminder runner to send a reminder for hiring pipelines   
+		// todo: update reminder runner to send a reminder for hiring pipelines
 		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
 		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 

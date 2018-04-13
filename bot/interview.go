@@ -29,7 +29,7 @@ func NewInterviewCommand(store db.Store, w io.Writer) cli.Command {
 			{
 				Name:      "add",
 				Usage:     "add a new interview",
-				ArgsUsage: "CANDIDATE DATE (mm/dd/yyyy) TIME (mm:hh{am|pm}) @INTERVIEWERS..",
+				ArgsUsage: "CANDIDATE DATE (mm/dd/yyyy) TIME (hh:mm{am|pm}) @INTERVIEWERS..",
 				Action: func(c *cli.Context) error {
 					args := c.Args()
 					candidateName := args.Get(0)
@@ -143,7 +143,7 @@ func NewInterviewCommand(store db.Store, w io.Writer) cli.Command {
 			{
 				Name:      "rm",
 				Usage:     "remove an interview",
-				ArgsUsage: "CANDIDATE DATE (mm/dd/yyyy) TIME (mm:hh{am|pm})",
+				ArgsUsage: "CANDIDATE DATE (mm/dd/yyyy) TIME (hh:mm{am|pm})",
 				Action: func(c *cli.Context) error {
 					args := c.Args()
 					candidateName := args.Get(0)
