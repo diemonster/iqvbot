@@ -16,8 +16,6 @@ type Store interface {
 const (
 	AliasesKey    = "aliases"
 	CandidatesKey = "candidates"
-	InterviewsKey = "interviews"
 	KarmaKey      = "karma"
 	KVSKey        = "kvs"
-	PipelinesKey  = "pipelines"
 )

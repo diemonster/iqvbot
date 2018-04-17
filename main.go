@@ -130,9 +130,9 @@ func main() {
 
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
-		// start the runners
-		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
-		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
+		// todo: start the runners
+		//defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
+		//defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),

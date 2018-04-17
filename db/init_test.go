@@ -20,10 +20,8 @@ func TestInit(t *testing.T) {
 	expected := []string{
 		AliasesKey,
 		CandidatesKey,
-		InterviewsKey,
 		KarmaKey,
 		KVSKey,
-		PipelinesKey,
 	}
 
 	assert.ElementsMatch(t, expected, keys)

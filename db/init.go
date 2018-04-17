@@ -24,19 +24,11 @@ func Init(store Store) error {
 		return err
 	}
 
-	if err := initFunc(InterviewsKey, models.Interviews{}); err != nil {
-		return err
-	}
-
 	if err := initFunc(KarmaKey, models.Karma{}); err != nil {
 		return err
 	}
 
 	if err := initFunc(KVSKey, map[string]string{}); err != nil {
-		return err
-	}
-
-	if err := initFunc(PipelinesKey, models.Pipelines{}); err != nil {
 		return err
 	}
 
