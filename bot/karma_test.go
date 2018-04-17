@@ -3,6 +3,7 @@ package bot
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -168,10 +169,8 @@ func TestKarmaCommandWithCountFlag(t *testing.T) {
 			}
 
 			output := strings.Split(w.String(), "\n")
-			for i, result := range output {
-				if result != "" {
-					assert.Contains(t, result, c.Expected[i])
-				}
+			for i, e := range c.Expected {
+				assert.Contains(t, output[i], e)
 			}
 		})
 	}
@@ -180,9 +179,9 @@ func TestKarmaCommandWithCountFlag(t *testing.T) {
 func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 	store := newMemoryStore(t)
 	karma := models.Karma{
-		"alpha":   models.KarmaEntry{Upvotes: 3, Downvotes: 0},
+		"alpha":   models.KarmaEntry{Upvotes: 1, Downvotes: 0},
 		"beta":    models.KarmaEntry{Upvotes: 2, Downvotes: 0},
-		"charlie": models.KarmaEntry{Upvotes: 1, Downvotes: 0},
+		"charlie": models.KarmaEntry{Upvotes: 3, Downvotes: 0},
 	}
 
 	if err := store.Write(db.KarmaKey, karma); err != nil {
@@ -196,12 +195,17 @@ func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	output := strings.Split(w.String(), "\n")
-	expected := []string{"charlie", "beta", "alpha"}
-
-	for i, e := range expected {
-		assert.Contains(t, output[i], e)
+	output := w.String()
+	var expected string
+	for name, entry := range karma {
+		expected += fmt.Sprintf("*%s*: %d (%d upvotes, %d downvotes)\n",
+			name,
+			entry.Upvotes-entry.Downvotes,
+			entry.Upvotes,
+			entry.Downvotes)
 	}
+
+	assert.Equal(t, expected, output)
 }
 
 func TestKarmaCommandUserInputErrors(t *testing.T) {
