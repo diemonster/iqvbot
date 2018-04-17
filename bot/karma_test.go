@@ -3,6 +3,7 @@ package bot
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -122,12 +123,9 @@ func TestKarmaCommandDefaults(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			output := strings.Split(w.String(), "\n")
-
-			for i, result := range output {
-				if result != "" {
-					assert.Contains(t, result, c.Expected[i])
-				}
+			output := w.String()
+			for _, e := range c.Expected {
+				assert.Contains(t, output, e)
 			}
 		})
 	}
@@ -201,24 +199,18 @@ func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 	output := strings.Split(w.String(), "\n")
 	expected := []string{"charlie", "beta", "alpha"}
 
-	for i, result := range output {
-		if result != "" {
-			assert.Contains(t, result, expected[i])
-		}
+	for i, e := range expected {
+		assert.Contains(t, output[i], e)
 	}
 }
 
 func TestKarmaCommandUserInputErrors(t *testing.T) {
-	store := newMemoryStore(t)
-	w := bytes.NewBuffer(nil)
-	cmd := NewKarmaCommand(store, w)
-
 	cases := map[string][]string{
 		"missing GLOB":      strings.Split("iqvbot karma", " "),
 		"no matching entry": strings.Split("iqvbot karma *", " "),
 	}
 
-	app := slackbot.NewTestApp(cmd)
+	app := slackbot.NewTestApp(NewKarmaCommand(newMemoryStore(t), ioutil.Discard))
 	for name, args := range cases {
 		t.Run(name, func(t *testing.T) {
 			assert.IsType(t, &slackbot.UserInputError{}, app.Run(args))
