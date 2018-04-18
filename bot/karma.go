@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -18,7 +17,7 @@ import (
 // NewKarmaBehavior returns a behavior that updates karma in the provided store.
 // Karma updates are triggered by the presence of '++', '--', '+-', or '-+' at the end of a message.
 func NewKarmaBehavior(store db.Store) slackbot.Behavior {
-	return func(ctx context.Context, e slack.RTMEvent) error {
+	return func(e slack.RTMEvent) error {
 		d, ok := e.Data.(*slack.MessageEvent)
 		if !ok {
 			return nil

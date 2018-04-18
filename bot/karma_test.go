@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"context"
 	"testing"
 
 	"github.com/nlopes/slack"
@@ -37,7 +36,7 @@ func TestKarmaBehavior(t *testing.T) {
 
 	b := NewKarmaBehavior(store)
 	for _, e := range events {
-		if err := b(context.Background(), e); err != nil {
+		if err := b(e); err != nil {
 			t.Fatal(err)
 		}
 	}
