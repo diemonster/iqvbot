@@ -2,7 +2,6 @@ package bot
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -41,7 +40,7 @@ func TestKarmaBehavior(t *testing.T) {
 
 	b := NewKarmaBehavior(store)
 	for _, e := range events {
-		if err := b(context.Background(), e); err != nil {
+		if err := b(e); err != nil {
 			t.Fatal(err)
 		}
 	}
