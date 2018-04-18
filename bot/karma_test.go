@@ -2,7 +2,6 @@ package bot
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -104,13 +103,9 @@ func TestKarmaCommandDefaults(t *testing.T) {
 			Input:    strings.Split("iqvbot karma *e*", " "),
 			Expected: []string{"beta", "charlie", "delta", "echo", "hotel", "juliet"},
 		},
-		"count default": {
+		"wildcard returns only first 10 entries": {
 			Input:    strings.Split("iqvbot karma *", " "),
 			Expected: []string{"alpha", "beta", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet"},
-		},
-		"descending default": {
-			Input:    strings.Split("iqvbot karma *o", " "),
-			Expected: []string{"echo", "kilo"},
 		},
 	}
 
@@ -167,9 +162,9 @@ func TestKarmaCommandWithCountFlag(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			output := strings.Split(w.String(), "\n")
-			for i, e := range c.Expected {
-				assert.Contains(t, output[i], e)
+			output := w.String()
+			for _, e := range c.Expected {
+				assert.Contains(t, output, e)
 			}
 		})
 	}
@@ -194,17 +189,7 @@ func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	output := w.String()
-	var expected string
-	for name, entry := range karma {
-		expected += fmt.Sprintf("*%s*: %d (%d upvotes, %d downvotes)\n",
-			name,
-			entry.Upvotes-entry.Downvotes,
-			entry.Upvotes,
-			entry.Downvotes)
-	}
-
-	assert.Equal(t, expected, output)
+	slackbot.IsOrdered(t, w.String(), "alpha", "beta", "charlie")
 }
 
 func TestKarmaCommandUserInputErrors(t *testing.T) {
