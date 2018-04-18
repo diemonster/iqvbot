@@ -58,5 +58,5 @@ resource "layer0_service" "mod" {
   name        = "${var.service_name}"
   environment = "${var.environment_id}"
   deploy      = "${layer0_deploy.mod.id}"
-  scale       = "${var.scale}"
+  scale       = 1
 }

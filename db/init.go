@@ -36,5 +36,9 @@ func Init(store Store) error {
 		return err
 	}
 
+	if err := initFunc(PipelinesKey, models.Pipelines{}); err != nil {
+		return err
+	}
+
 	return nil
 }

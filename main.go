@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,6 +16,7 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/quintilesims/iqvbot/bot"
 	"github.com/quintilesims/iqvbot/db"
+	"github.com/quintilesims/iqvbot/runner"
 	"github.com/zpatrick/slackbot"
 
 	"github.com/urfave/cli"
@@ -115,9 +117,6 @@ func main() {
 		kvsStore := db.NewKeyValueStoreAdapter(store, db.KVSKey)
 		triviaStore := slackbot.InMemoryTriviaStore{}
 
-		// todo: start cleanup runner
-		// todo: start reminders runner
-
 		// create the slack client
 		appToken := c.String("slack-app-token")
 		if appToken == "" {
@@ -131,10 +130,17 @@ func main() {
 
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
+		// start the runners
+		// todo: update reminder runner to send a reminder for hiring pipelines
+		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
+		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
+
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
-			slackbot.NewAliasBehavior(aliasStore),
+			slackbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
+				return !strings.Contains(m.Text, " alias ")
+			}),
 			bot.NewKarmaBehavior(store),
 		}
 
@@ -187,22 +193,22 @@ func main() {
 					text := fmt.Sprintf("Command '%s' does not exist", command)
 					w.WriteString(text)
 				}
-				// todo: CandidateCommand
-				// todo: InterviewCommand
 				app.Commands = []cli.Command{
 					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
 						aliasStore.Invalidate()
 						return nil
 					})),
-					//bot.NewCandidateComand(store, w),
+					bot.NewCandidateCommand(store, w),
 					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
+					bot.NewHireCommand(store, w),
+					bot.NewInterviewCommand(store, w),
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
-						return strings.HasPrefix(m.Text, "iqvbot ") && !strings.HasPrefix(m.Text, "iqvbot repeat")
+						return strings.HasPrefix(m.Text, "!") && !strings.HasPrefix(m.Text, "!repeat")
 					}),
 					slackbot.NewTriviaCommand(triviaStore, slackbot.OpenTDBAPIEndpoint, data.Channel, w),
 				}
