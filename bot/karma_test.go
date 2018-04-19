@@ -66,13 +66,6 @@ func TestKarmaCommandDefaults(t *testing.T) {
 		"beta":    models.KarmaEntry{Upvotes: 10, Downvotes: 0},
 		"charlie": models.KarmaEntry{Upvotes: 9, Downvotes: 0},
 		"delta":   models.KarmaEntry{Upvotes: 8, Downvotes: 0},
-		"echo":    models.KarmaEntry{Upvotes: 7, Downvotes: 0},
-		"foxtrot": models.KarmaEntry{Upvotes: 6, Downvotes: 0},
-		"golf":    models.KarmaEntry{Upvotes: 5, Downvotes: 0},
-		"hotel":   models.KarmaEntry{Upvotes: 4, Downvotes: 0},
-		"india":   models.KarmaEntry{Upvotes: 3, Downvotes: 0},
-		"juliet":  models.KarmaEntry{Upvotes: 2, Downvotes: 0},
-		"kilo":    models.KarmaEntry{Upvotes: 1, Downvotes: 0},
 	}
 
 	if err := store.Write(db.KarmaKey, karma); err != nil {
@@ -97,15 +90,11 @@ func TestKarmaCommandDefaults(t *testing.T) {
 		},
 		"wildcard multi-match": {
 			Input:    strings.Split("iqvbot karma *a", " "),
-			Expected: []string{"alpha", "beta", "delta", "india"},
+			Expected: []string{"alpha", "beta", "delta"},
 		},
 		"two wildcards": {
 			Input:    strings.Split("iqvbot karma *e*", " "),
-			Expected: []string{"beta", "charlie", "delta", "echo", "hotel", "juliet"},
-		},
-		"wildcard returns only first 10 entries": {
-			Input:    strings.Split("iqvbot karma *", " "),
-			Expected: []string{"alpha", "beta", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet"},
+			Expected: []string{"beta", "charlie", "delta"},
 		},
 	}
 
@@ -151,6 +140,14 @@ func TestKarmaCommandWithCountFlag(t *testing.T) {
 			Input:    strings.Split("iqvbot karma --count=3 *", " "),
 			Expected: []string{"alpha", "beta", "charlie"},
 		},
+		"count greater than entries": {
+			Input:    strings.Split("iqvbot karma --count=5 *", " "),
+			Expected: []string{"alpha", "beta", "charlie", "delta"},
+		},
+		"count below zero": {
+			Input:    strings.Split("iqvbot karma --count=-1 *", " "),
+			Expected: []string{},
+		},
 	}
 
 	for name, c := range cases {
@@ -182,14 +179,33 @@ func TestKarmaCommandWithAscendingFlag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := bytes.NewBuffer(nil)
-	cmd := NewKarmaCommand(store, w)
-
-	if err := slackbot.NewTestApp(cmd).Run(strings.Split("iqvbot karma --ascending *", " ")); err != nil {
-		t.Fatal(err)
+	cases := map[string]struct {
+		Input    []string
+		Expected []string
+	}{
+		"ascending true": {
+			Input:    strings.Split("iqvbot karma --ascending=true *", " "),
+			Expected: []string{"alpha", "beta", "charlie"},
+		},
+		"ascending false": {
+			Input:    strings.Split("iqvbot karma --ascending=false *", " "),
+			Expected: []string{"charlie", "beta", "alpha"},
+		},
 	}
 
-	slackbot.IsOrdered(t, w.String(), "alpha", "beta", "charlie")
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			w := bytes.NewBuffer(nil)
+			cmd := NewKarmaCommand(store, w)
+
+			if err := slackbot.NewTestApp(cmd).Run(c.Input); err != nil {
+				t.Fatal(err)
+			}
+
+			slackbot.AssertContainsInOrder(t, w.String(), c.Expected...)
+		})
+	}
+
 }
 
 func TestKarmaCommandUserInputErrors(t *testing.T) {
