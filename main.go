@@ -17,7 +17,7 @@ import (
 	"github.com/quintilesims/iqvbot/bot"
 	"github.com/quintilesims/iqvbot/db"
 	"github.com/quintilesims/iqvbot/runner"
-	"github.com/zpatrick/slackbot"
+	"github.com/zpatrick/iqvbot"
 
 	"github.com/urfave/cli"
 )
@@ -115,7 +115,7 @@ func main() {
 
 		aliasStore := db.NewKeyValueStoreAdapter(store, db.AliasesKey)
 		kvsStore := db.NewKeyValueStoreAdapter(store, db.KVSKey)
-		triviaStore := slackbot.InMemoryTriviaStore{}
+		triviaStore := iqvbot.InMemoryTriviaStore{}
 
 		// create the slack client
 		appToken := c.String("slack-app-token")
@@ -128,17 +128,17 @@ func main() {
 			return fmt.Errorf("Bot Token is not set!")
 		}
 
-		client := slackbot.NewDualSlackClient(appToken, botToken)
+		client := iqvbot.NewDualSlackClient(appToken, botToken)
 
 		// start the runners
 		// todo: update reminder runner to send a reminder for hiring pipelines
 		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
 		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
-		behaviors := []slackbot.Behavior{
-			slackbot.NewStandardizeTextBehavior(),
-			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
-			slackbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
+		behaviors := []iqvbot.Behavior{
+			iqvbot.NewStandardizeTextBehavior(),
+			iqvbot.NewExpandPromptBehavior("!", "iqvbot "),
+			iqvbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
 				return !strings.Contains(m.Text, " alias ")
 			}),
 			bot.NewKarmaBehavior(store),
@@ -185,7 +185,7 @@ func main() {
 				app.Usage = "making email obsolete one step at a time"
 				app.UsageText = "command [flags...] arguments..."
 				app.Version = Version
-				app.Writer = slackbot.WriterFunc(func(b []byte) (n int, err error) {
+				app.Writer = iqvbot.WriterFunc(func(b []byte) (n int, err error) {
 					isDisplayingHelp = true
 					return w.Write(b)
 				})
@@ -194,23 +194,23 @@ func main() {
 					w.WriteString(text)
 				}
 				app.Commands = []cli.Command{
-					slackbot.NewAliasCommand(aliasStore, w, slackbot.WithBefore(func(c *cli.Context) error {
+					iqvbot.NewAliasCommand(aliasStore, w, iqvbot.WithBefore(func(c *cli.Context) error {
 						aliasStore.Invalidate()
 						return nil
 					})),
 					bot.NewCandidateCommand(store, w),
-					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
-					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
-					slackbot.NewEchoCommand(w),
-					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
+					iqvbot.NewDefineCommand(iqvbot.DatamuseAPIEndpoint, w),
+					iqvbot.NewDeleteCommand(client, info.User.ID, data.Channel),
+					iqvbot.NewEchoCommand(w),
+					iqvbot.NewGIFCommand(iqvbot.TenorAPIEndpoint, tenorKey, w),
 					bot.NewHireCommand(store, w),
 					bot.NewInterviewCommand(store, w),
 					bot.NewKarmaCommand(store, w),
-					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
-					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
+					iqvbot.NewKVSCommand(kvsStore, w, iqvbot.WithName("glossary"), iqvbot.WithUsage("manage the glossary")),
+					iqvbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
 						return strings.HasPrefix(m.Text, "!") && !strings.HasPrefix(m.Text, "!repeat")
 					}),
-					slackbot.NewTriviaCommand(triviaStore, slackbot.OpenTDBAPIEndpoint, data.Channel, w),
+					iqvbot.NewTriviaCommand(triviaStore, iqvbot.OpenTDBAPIEndpoint, data.Channel, w),
 				}
 
 				if err := app.Run(args); err != nil {
