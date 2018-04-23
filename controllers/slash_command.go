@@ -15,6 +15,7 @@ import (
 	"github.com/zpatrick/fireball"
 )
 
+// todo: Validate request tokens: https://github.com/nlopes/slack/blob/master/examples/slash/slash.go#L27
 type SlashCommandController struct {
 	store    db.Store
 	commands []*slash.CommandSchema
@@ -30,13 +31,13 @@ func NewSlashCommandController(store db.Store, commands ...*slash.CommandSchema)
 func (s *SlashCommandController) Routes() []*fireball.Route {
 	routes := []*fireball.Route{
 		{
-			Path: "/",
+			Path: "/slack/message_action",
 			Handlers: fireball.Handlers{
 				"POST": s.run,
 			},
 		},
 		{
-			Path: "/callback",
+			Path: "/slack/message_callback",
 			Handlers: fireball.Handlers{
 				"POST": s.callback,
 			},
@@ -61,7 +62,7 @@ func (s *SlashCommandController) run(c *fireball.Context) (fireball.Response, er
 	}
 
 	if cmd == nil {
-		return nil, slash.NewSlackMessageError("No matching handler found for '%s'", req.Command)
+		return nil, fmt.Errorf("No matching handler found for '%s'", req.Command)
 	}
 
 	if args := strings.Split(req.Text, " "); len(args) == 1 && args[0] == "help" {
@@ -123,7 +124,7 @@ func (s *SlashCommandController) callback(c *fireball.Context) (fireball.Respons
 	}
 
 	if cmd == nil {
-		return nil, slash.NewSlackMessageError("No matching handler found for '%s'", commandName)
+		return nil, slash.NewSlackMessageErrorf("No matching handler found for '%s'", commandName)
 	}
 
 	msg, err := cmd.Callback(*req)

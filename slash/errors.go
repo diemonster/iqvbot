@@ -10,13 +10,17 @@ type SlackMessageError struct {
 	*slack.Msg
 }
 
-func NewSlackMessageError(format string, tokens ...interface{}) *SlackMessageError {
+func NewSlackMessageError(text string) *SlackMessageError {
 	return &SlackMessageError{
 		&slack.Msg{
 			ResponseType: "ephemeral",
-			Text:         fmt.Sprintf(format, tokens...),
+			Text:         text,
 		},
 	}
+}
+
+func NewSlackMessageErrorf(format string, tokens ...interface{}) *SlackMessageError {
+	return NewSlackMessageError(fmt.Sprintf(format, tokens...))
 }
 
 func (s *SlackMessageError) Error() string {
