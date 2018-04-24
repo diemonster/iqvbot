@@ -1,9 +1,13 @@
 package models
 
+import "time"
+
 type Interview struct {
 	InterviewID    string
 	Candidate      string
 	InterviewerIDs []string
+	Time           time.Time
+	Reminder       time.Duration
 }
 
 type Interviews []*Interview

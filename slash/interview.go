@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nlopes/slack"
 	"github.com/quintilesims/iqvbot/db"
@@ -52,10 +53,13 @@ func (cmd *InterviewCommand) add(req slack.SlashCommand, candidate string) (*sla
 		return nil, err
 	}
 
+	n := time.Now().In(PST)
 	interview := &models.Interview{
 		InterviewID:    randomString(10),
 		Candidate:      candidate,
-		InterviewerIDs: make([]string, 1),
+		InterviewerIDs: []string{req.UserID},
+		Time:           time.Date(n.Year(), n.Month(), n.Day(), 9, 0, 0, 0, n.Location()),
+		Reminder:       time.Minute * 5,
 	}
 
 	interviews = append(interviews, interview)
@@ -67,7 +71,12 @@ func (cmd *InterviewCommand) add(req slack.SlashCommand, candidate string) (*sla
 }
 
 func (cmd *InterviewCommand) list() (*slack.Message, error) {
-	return nil, NewSlackMessageError("list is not implemented")
+	interviews := models.Interviews{}
+	if err := cmd.store.Read(db.InterviewsKey, &interviews); err != nil {
+		return nil, err
+	}
+
+	return ListInterviewsView(interviews), nil
 }
 
 func (cmd *InterviewCommand) callback(req slack.AttachmentActionCallback) (*slack.Message, error) {
@@ -82,18 +91,91 @@ func (cmd *InterviewCommand) callback(req slack.AttachmentActionCallback) (*slac
 		return nil, NewSlackMessageError("This interview no longer exists!")
 	}
 
-	switch action := req.Actions[0].Name; {
-	case action == ActionAddInterviewer:
+	switch actionName := req.Actions[0].Name; {
+	case actionName == ActionAddInterviewer:
 		interview.InterviewerIDs = append(interview.InterviewerIDs, "")
-	case strings.HasPrefix(action, ActionSelectInterviewer):
-		index, err := strconv.Atoi(action[len(action)-1:])
+	case actionName == ActionSelectDate:
+		updated, err := time.Parse(TimeValueFormat, req.Actions[0].SelectedOptions[0].Value)
+		if err != nil {
+			return nil, err
+		}
+
+		// only update the date, not the time
+		interview.Time = time.Date(
+			updated.Year(),
+			updated.Month(),
+			updated.Day(),
+			interview.Time.Hour(),
+			interview.Time.Minute(),
+			interview.Time.Second(),
+			interview.Time.Nanosecond(),
+			interview.Time.Location())
+	case actionName == ActionSelectTime:
+		updated, err := time.Parse(TimeValueFormat, req.Actions[0].SelectedOptions[0].Value)
+		if err != nil {
+			return nil, err
+		}
+
+		// only update the time, not the date
+		interview.Time = time.Date(
+			interview.Time.Year(),
+			interview.Time.Month(),
+			interview.Time.Day(),
+			updated.Hour(),
+			updated.Minute(),
+			updated.Second(),
+			updated.Nanosecond(),
+			updated.Location())
+	case actionName == ActionSelectReminder:
+		d, err := time.ParseDuration(req.Actions[0].SelectedOptions[0].Value)
+		if err != nil {
+			return nil, err
+		}
+
+		interview.Reminder = d
+	case strings.HasPrefix(actionName, ActionSelectInterviewer):
+		index, err := strconv.Atoi(actionName[len(actionName)-1:])
 		if err != nil {
 			return nil, err
 		}
 
 		interview.InterviewerIDs[index] = req.Actions[0].SelectedOptions[0].Value
+	case actionName == ActionSchedule:
+		if err := cmd.store.Write(db.InterviewsKey, interviews); err != nil {
+			return nil, err
+		}
+
+		msg := slack.Msg{
+			Text: fmt.Sprintf("Interview for *%s* on *%s* at *%s* has been scheduled!",
+				interview.Candidate,
+				interview.Time.Format(DateDisplayFormat),
+				interview.Time.Format(TimeDisplayFormat)),
+		}
+
+		return &slack.Message{Msg: msg}, nil
+	case actionName == ActionCancel || actionName == ActionDelete:
+		for i := 0; i < len(interviews); i++ {
+			if interviews[i].InterviewID == interviewID {
+				interviews = append(interviews[:i], interviews[i+1:]...)
+				i--
+			}
+		}
+
+		if err := cmd.store.Write(db.InterviewsKey, interviews); err != nil {
+			return nil, err
+		}
+
+		if actionName == ActionDelete {
+			return ListInterviewsView(interviews), nil
+		}
+
+		msg := slack.Msg{
+			Text: fmt.Sprintf("Interview for *%s* has been cancelled", interview.Candidate),
+		}
+
+		return &slack.Message{Msg: msg}, nil
 	default:
-		return nil, fmt.Errorf("Unexpected callback action '%s'", action)
+		return nil, fmt.Errorf("Unexpected callback action name '%s'", actionName)
 	}
 
 	if err := cmd.store.Write(db.InterviewsKey, interviews); err != nil {

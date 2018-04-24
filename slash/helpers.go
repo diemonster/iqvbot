@@ -1,6 +1,8 @@
 package slash
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 func randomString(length int) string {
 	runes := []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
