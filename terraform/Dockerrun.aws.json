@@ -6,10 +6,20 @@
             "image": "${docker_image}",
             "essential": true,
             "memory": 128,
+            "portMappings": [
+                {
+                    "hostPort": 80,
+                    "containerPort": 80
+                }
+            ]
             "environment": [
                 {
-                    "name": "BB_DEBUG",
+                    "name": "IB_DEBUG",
                     "value": "true"
+                },
+                {
+                    "name": "IB_PORT",
+                    "value": "80"
                 },
                 {
                     "name": "IB_SLACK_BOT_TOKEN",

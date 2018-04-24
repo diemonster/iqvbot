@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -15,8 +15,11 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/nlopes/slack"
 	"github.com/quintilesims/iqvbot/bot"
+	"github.com/quintilesims/iqvbot/controllers"
 	"github.com/quintilesims/iqvbot/db"
 	"github.com/quintilesims/iqvbot/runner"
+	"github.com/quintilesims/iqvbot/slash"
+	"github.com/zpatrick/fireball"
 	"github.com/zpatrick/slackbot"
 
 	"github.com/urfave/cli"
@@ -38,6 +41,12 @@ func main() {
 			Name:   "d, debug",
 			Usage:  "enable debug logging",
 			EnvVar: "IB_DEBUG",
+		},
+		cli.IntFlag{
+			Name:   "p, port",
+			Usage:  "port to listen on",
+			Value:  9090,
+			EnvVar: "IB_PORT",
 		},
 		cli.StringFlag{
 			Name:   "slack-app-token",
@@ -131,7 +140,6 @@ func main() {
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
 		// start the runners
-		// todo: update reminder runner to send a reminder for hiring pipelines
 		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
 		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
@@ -144,17 +152,33 @@ func main() {
 			bot.NewKarmaBehavior(store),
 		}
 
+		// spin-up our server to handle slash commands
+		go func() {
+			commands := []*slash.CommandSchema{
+				slash.NewInterviewCommand(store).Schema(),
+			}
+
+			routes := controllers.NewSlashCommandController(store, commands...).Routes()
+			routes = fireball.Decorate(routes, fireball.LogDecorator())
+
+			app := fireball.NewApp(routes)
+			app.ErrorHandler = controllers.ErrorHandler
+
+			port := fmt.Sprintf(":%d", c.Int("port"))
+			log.Printf("[INFO] Listening on %s\n", port)
+			log.Fatal(http.ListenAndServe(port, app))
+		}()
+
 		// start the real-time-messaging api
 		rtm := client.NewRTM()
 		go rtm.ManageConnection()
 		defer rtm.Disconnect()
 
 		for e := range rtm.IncomingEvents {
-			ctx := context.Background()
 			info := rtm.GetInfo()
 
 			for _, behavior := range behaviors {
-				if err := behavior(ctx, e); err != nil {
+				if err := behavior(e); err != nil {
 					log.Printf("[ERROR] %s", err.Error())
 				}
 			}
@@ -204,7 +228,6 @@ func main() {
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
 					bot.NewHireCommand(store, w),
-					bot.NewInterviewCommand(store, w),
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {

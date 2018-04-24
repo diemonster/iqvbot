@@ -78,9 +78,9 @@ func TestGetInterviewTimers(t *testing.T) {
 
 	now := time.Now()
 	interviews := models.Interviews{
-		{Time: now.Add(InterviewReminderLead * 2).UTC(), InterviewerIDs: []string{"uid1", "uid2"}},
-		{Time: now.Add(InterviewReminderLead * 2).UTC(), InterviewerIDs: []string{"uid3"}},
-		{Time: now.Add(-InterviewReminderLead).UTC(), InterviewerIDs: []string{"bad"}},
+		{Time: now.Add(time.Hour), Reminder: time.Minute, InterviewerIDs: []string{"uid1", "uid2"}},
+		{Time: now.Add(time.Hour), Reminder: time.Minute * 2, InterviewerIDs: []string{"uid3"}},
+		{Time: now.Add(-time.Hour), InterviewerIDs: []string{"bad"}},
 	}
 
 	store := newMemoryStore(t)

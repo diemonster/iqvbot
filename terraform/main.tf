@@ -54,9 +54,26 @@ resource "layer0_deploy" "mod" {
   content = "${data.template_file.deploy.rendered}"
 }
 
-resource "layer0_service" "mod" {
-  name        = "${var.service_name}"
+resource "layer0_load_balancer" "mod" {
+  name        = "${var.load_balancer_name}"
   environment = "${var.environment_id}"
-  deploy      = "${layer0_deploy.mod.id}"
-  scale       = 1
+
+  port {
+    host_port      = "443"
+    container_port = "80"
+    protocol       = "https"
+    certificate    = "${var.certificate_name}"
+  }
+
+  health_check {
+    target = "tcp:80"
+  }
+}
+
+resource "layer0_service" "mod" {
+  name          = "${var.service_name}"
+  environment   = "${var.environment_id}"
+  load_balancer = "${layer0_load_balancer.mod.id}"
+  deploy        = "${layer0_deploy.mod.id}"
+  scale         = 1
 }

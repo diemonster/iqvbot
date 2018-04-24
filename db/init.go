@@ -20,6 +20,10 @@ func Init(store Store) error {
 		return err
 	}
 
+	if err := initFunc(CallbacksKey, models.Callbacks{}); err != nil {
+		return err
+	}
+
 	if err := initFunc(CandidatesKey, models.Candidates{}); err != nil {
 		return err
 	}
