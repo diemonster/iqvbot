@@ -40,6 +40,15 @@ variable "deploy_name" {
   default     = "iqvbot"
 }
 
+variable "load_balancer_name" {
+  description = "Name of the Layer0 load balancer to create"
+  default     = "iqvbot"
+}
+
+variable "certificate_name" {
+  description = "The name of the certificate to use on the load balancer"
+}
+
 variable "service_name" {
   description = "Name of the Layer0 service to create"
   default     = "iqvbot"

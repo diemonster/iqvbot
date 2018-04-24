@@ -46,7 +46,7 @@ func main() {
 			Name:   "p, port",
 			Usage:  "port to listen on",
 			Value:  9090,
-			EnvVar: "SB_PORT",
+			EnvVar: "IB_PORT",
 		},
 		cli.StringFlag{
 			Name:   "slack-app-token",
