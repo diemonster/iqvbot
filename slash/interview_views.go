@@ -42,7 +42,7 @@ func AddInterviewView(interview models.Interview) *slack.Message {
 func selectDateAttachment(interview models.Interview) slack.Attachment {
 	options := make([]slack.AttachmentActionOption, 14)
 	for i := 0; i < len(options); i++ {
-		t := time.Now().In(PST).AddDate(0, 0, i)
+		t := time.Now().In(PDT).AddDate(0, 0, i)
 		options[i] = slack.AttachmentActionOption{
 			Text:  t.Format(DateDisplayFormat),
 			Value: t.Format(TimeValueFormat),
@@ -80,7 +80,7 @@ func selectTimeAttachment(interview models.Interview) slack.Attachment {
 	for hour := 0; hour < 24; hour++ {
 		for j, minute := range minutes {
 			t := time.Date(interview.Time.Year(), interview.Time.Month(),
-				interview.Time.Day(), hour, minute, 0, 0, PST)
+				interview.Time.Day(), hour, minute, 0, 0, PDT)
 
 			options[(hour*len(minutes))+j] = slack.AttachmentActionOption{
 				Text:  t.Format(TimeDisplayFormat),

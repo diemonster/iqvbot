@@ -53,7 +53,7 @@ func (cmd *InterviewCommand) add(req slack.SlashCommand, candidate string) (*sla
 		return nil, err
 	}
 
-	n := time.Now().In(PST)
+	n := time.Now().In(PDT)
 	interview := &models.Interview{
 		InterviewID:    randomString(10),
 		Candidate:      candidate,
