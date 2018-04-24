@@ -118,8 +118,6 @@ func getInterviewTimers(store db.Store, client slackbot.SlackClient) ([]*time.Ti
 			continue
 		}
 
-		fmt.Printf("Sending reminder for %s in %v\n", interview.Candidate, d)
-
 		timer := time.AfterFunc(d, func() {
 			for _, interviewerID := range interview.InterviewerIDs {
 				text := "Hello! Just reminding you that "
