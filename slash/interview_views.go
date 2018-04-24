@@ -18,7 +18,7 @@ const (
 	ActionCancel            = "cancel"
 	ActionDelete            = "delete"
 	DateDisplayFormat       = "Monday, January 2"
-	TimeDisplayFormat       = "3:04 PM MST"
+	TimeDisplayFormat       = "3:04 PM"
 	TimeValueFormat         = "2006-01-02 15:04:05 -0700 MST"
 )
 
@@ -97,7 +97,7 @@ func selectTimeAttachment(interview models.Interview) slack.Attachment {
 	}
 
 	return slack.Attachment{
-		Text:       "*What time is the interview?*",
+		Text:       "*What time is the interview?* (time is in PDT)",
 		Fallback:   "You are currently unable to specify the time of the interview. Please try again later.",
 		Color:      "good",
 		CallbackID: interview.InterviewID,
@@ -247,7 +247,7 @@ func ListInterviewsView(interviews models.Interviews) *slack.Message {
 					Short: true,
 				},
 				{
-					Title: "Time",
+					Title: "Time (PDT)",
 					Value: interview.Time.Format(TimeDisplayFormat),
 					Short: true,
 				},
