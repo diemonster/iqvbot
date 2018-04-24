@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,6 +17,7 @@ import (
 	"github.com/quintilesims/iqvbot/bot"
 	"github.com/quintilesims/iqvbot/controllers"
 	"github.com/quintilesims/iqvbot/db"
+	"github.com/quintilesims/iqvbot/runner"
 	"github.com/quintilesims/iqvbot/slash"
 	"github.com/zpatrick/fireball"
 	"github.com/zpatrick/slackbot"
@@ -138,8 +140,8 @@ func main() {
 		client := slackbot.NewDualSlackClient(appToken, botToken)
 
 		// start the runners
-		// todo: add runenrs back in
-		// todo: update reminder runner to send a reminder for hiring pipelines
+		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
+		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
@@ -220,10 +222,12 @@ func main() {
 						aliasStore.Invalidate()
 						return nil
 					})),
+					bot.NewCandidateCommand(store, w),
 					slackbot.NewDefineCommand(slackbot.DatamuseAPIEndpoint, w),
 					slackbot.NewDeleteCommand(client, info.User.ID, data.Channel),
 					slackbot.NewEchoCommand(w),
 					slackbot.NewGIFCommand(slackbot.TenorAPIEndpoint, tenorKey, w),
+					bot.NewHireCommand(store, w),
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
