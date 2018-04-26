@@ -143,12 +143,14 @@ func main() {
 		defer runner.NewCleanupRunner(store).RunEvery(time.Hour).Stop()
 		defer runner.NewReminderRunner(store, client).RunEvery(time.Minute * 5).Stop()
 
+		aliasBehavior := slackbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
+			return !strings.Contains(m.Text, " alias ")
+		})
+
 		behaviors := []slackbot.Behavior{
 			slackbot.NewStandardizeTextBehavior(),
 			slackbot.NewExpandPromptBehavior("!", "iqvbot "),
-			slackbot.NewAliasBehavior(aliasStore, func(m *slack.MessageEvent) bool {
-				return !strings.Contains(m.Text, " alias ")
-			}),
+			aliasBehavior,
 			bot.NewKarmaBehavior(store),
 		}
 
@@ -231,7 +233,9 @@ func main() {
 					bot.NewKarmaCommand(store, w),
 					slackbot.NewKVSCommand(kvsStore, w, slackbot.WithName("glossary"), slackbot.WithUsage("manage the glossary")),
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
-						return strings.HasPrefix(m.Text, "!") && !strings.HasPrefix(m.Text, "!repeat")
+						aliasBehavior(e)
+						text := data.Msg.Text
+						return strings.HasPrefix(text, "!") && !strings.HasPrefix(text, "!repeat")
 					}),
 					slackbot.NewTriviaCommand(triviaStore, slackbot.OpenTDBAPIEndpoint, data.Channel, w),
 				}
