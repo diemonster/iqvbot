@@ -171,7 +171,7 @@ func main() {
 			log.Fatal(http.ListenAndServe(port, app))
 		}()
 
-		// start the real-time-messaging api
+		// start the real time messaging api
 		rtm := client.NewRTM()
 		go rtm.ManageConnection()
 		defer rtm.Disconnect()
@@ -235,7 +235,7 @@ func main() {
 					slackbot.NewRepeatCommand(client, data.Channel, rtm.IncomingEvents, func(m slack.Message) bool {
 						aliasBehavior(e)
 						text := data.Msg.Text
-						return strings.HasPrefix(text, "!") && !strings.HasPrefix(text, "!repeat")
+					 	return strings.HasPrefix(text, "!") && !strings.HasPrefix(text, "!repeat")
 					}),
 					slackbot.NewTriviaCommand(triviaStore, slackbot.OpenTDBAPIEndpoint, data.Channel, w),
 				}
